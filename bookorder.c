@@ -12,10 +12,17 @@ int main(int argc, char** argv){
 		return -1;
 	}
 
+	//get number of lines in the file for the hash table
 	
+	int c;
+	int numlines;
+	while((c = fgetc(databasefile)) != EOF){
+		if(c == '\n'){
+			numlines++;	
+		}
+	}
 
-
-
+	fclose(databasefile);
 
 	return 0;
 }
