@@ -10,6 +10,7 @@ struct producerargs{
 
 	FILE* orderfile;
 	struct queue* catQ;
+	int Qsize; //holds how many queues are in catQ
 
 };
 
@@ -18,13 +19,30 @@ struct producerargs{
 //Producer creates ordernode, and adds to category queue.
 void* producer(void* arguments){
 
-	
+	//make void argument back into producerargs struct	
 	struct producerargs *args = (struct producerargs*)arguments;
 
-	char* word = malloc(1000);
+	//char* word = malloc(1000);
+	//strcpy(word, args->catQ[0].category);
 
-	strcpy(word, args->catQ[0].category);
+	//read file to create ordernodes for each line.
+	//Traverse database to find matching ID for that order, and attempt to place order,
+	//adding ordernode to either success or failure queue.
+	FILE* ofile = args->orderfile;
+	char* buffer = (char*)malloc(sizeof(1000));
 
+
+	while(fgets(buffer, 1000, ofile)){	
+
+		//here we'd have code to make ordernodes and stuff
+
+	
+		printf("%s\n", buffer);
+	
+		//token = strtok(buffer, "\"");
+
+
+	}	
 }
 
 int main(int argc, char** argv){
@@ -144,6 +162,7 @@ int main(int argc, char** argv){
 	struct producerargs* pargs;
 	pargs = (struct producerargs*)malloc(sizeof(struct producerargs));
 	pargs->catQ = catQ;
+	pargs->Qsize = numlines;
 
 
 	FILE* orderfile = fopen(argv[2], "r");
