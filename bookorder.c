@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "uthash.h"
 #include "bookorder.h"
 #include "queue.h"
 #include <pthread.h>
@@ -18,10 +17,13 @@ struct producerargs{
 //Producer thread has access to the orders file, and all queues. 
 //Producer creates ordernode, and adds to category queue.
 void* producer(void* arguments){
+
 	
 	struct producerargs *args = (struct producerargs*)arguments;
-	
-	printf("%s\n", args->catQ[0].category);	
+
+	char* word = malloc(1000);
+
+	strcpy(word, args->catQ[0].category);
 
 }
 
@@ -63,39 +65,33 @@ int main(int argc, char** argv){
 		//add database name
 		(DB[i]).name = (char*)malloc(strlen(token));				
 		strcpy(DB[i].name, buffer+1);
-		printf("db at %d is %s\n", i, DB[i].name);
 
 
 		//add database id
 		token = strtok(NULL, "|\"");
 		(DB[i]).id = atoi(token);		
-		printf("id at %d is %d\n", i, DB[i].id);
 
 
 		//add database balance
 		token = strtok(NULL, "|\"");
 		(DB[i]).balance = atof(token);		
-		printf("id at %d is %.02f\n", i, DB[i].balance);
 
 		//add database address
 		token = strtok(NULL, "|\"");
 		(DB[i]).address = (char*)malloc(strlen(token));				
 		strcpy(DB[i].address, token);
-		printf("db at %d is %s\n", i, DB[i].address);
 
 
 		//add database state
 		token = strtok(NULL, "|\"");
 		(DB[i]).state = (char*)malloc(strlen(token));				
 		strcpy(DB[i].state, token);
-		printf("db at %d is %s\n", i, DB[i].state);
 
 
 		//add database zip
 		token = strtok(NULL, "|\"");
 		(DB[i]).zip = (char*)malloc(strlen(token));				
 		strcpy(DB[i].zip, token);
-		printf("db at %d is %s\n", i, DB[i].zip);
 	
 		DB[i].success = NULL;
 		DB[i].failure = NULL;
@@ -127,6 +123,8 @@ int main(int argc, char** argv){
 
 	fseek(categoryfile, 0, SEEK_SET);
 
+
+	//create queue 
 	struct queue* catQ = (struct queue*)malloc(sizeof(struct queue)*numlines); 
 
 	while(fgets(buffer, 1000, categoryfile)){
@@ -135,13 +133,18 @@ int main(int argc, char** argv){
 
 		catQ[i].category = (char*)malloc(strlen(buffer));
 		strcpy(catQ[i].category, buffer);	
-			
+		printf("catQ is %s\n", catQ[i].category);	
 		i++;
 	}
 
+
+	//make producer thread and struct with arguments to give to producer function
+	
 	pthread_t thread; 
 	struct producerargs* pargs;
+	pargs = (struct producerargs*)malloc(sizeof(struct producerargs));
 	pargs->catQ = catQ;
+
 
 	FILE* orderfile = fopen(argv[2], "r");
 
@@ -152,7 +155,10 @@ int main(int argc, char** argv){
 
 	pargs->orderfile = orderfile;
 
-	pthread_create(&thread, 0, producer, (void*)pargs);
+	int prodint = pthread_create(&thread, NULL, producer, (void*)(pargs));
 
-	return 0;
+	pthread_join(thread, NULL);
+
+
+//	return 0;
 }
