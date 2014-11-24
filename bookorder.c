@@ -14,16 +14,24 @@ struct producerargs{
 
 };
 
+struct consumerargs{
+
+	struct customerDatabase* DB;		
+	struct queue* q;
+
+};
 
 //Producer thread has access to the orders file, and all queues. 
 //Producer creates ordernode, and adds to category queue.
 void* producer(void* arguments){
 
+
 	//make void argument back into producerargs struct	
 	struct producerargs *args = (struct producerargs*)arguments;
 
-	//char* word = malloc(1000);
-	//strcpy(word, args->catQ[0].category);
+	char* word = malloc(1000);
+	strcpy(word, args->catQ[0].category);
+
 
 	//read file to create ordernodes for each line.
 	//Traverse database to find matching ID for that order, and attempt to place order,
@@ -36,13 +44,19 @@ void* producer(void* arguments){
 
 		//here we'd have code to make ordernodes and stuff
 
-	
 		printf("%s\n", buffer);
 	
 		//token = strtok(buffer, "\"");
 
 
 	}	
+}
+
+
+void* consumer(void* arguments){
+
+	struct consumerargs *args = (struct consumerargs*)arguments;
+
 }
 
 int main(int argc, char** argv){
@@ -65,7 +79,7 @@ int main(int argc, char** argv){
 		}
 	}
 
-	//create hash table customerDatabase
+	//create array of structs called customerDatabase
 
 	fseek(databasefile, 0, SEEK_SET);
 	
@@ -142,7 +156,7 @@ int main(int argc, char** argv){
 	fseek(categoryfile, 0, SEEK_SET);
 
 
-	//create queue 
+	//create queue array catQ that holds a queue for each category 
 	struct queue* catQ = (struct queue*)malloc(sizeof(struct queue)*numlines); 
 
 	while(fgets(buffer, 1000, categoryfile)){
@@ -151,14 +165,14 @@ int main(int argc, char** argv){
 
 		catQ[i].category = (char*)malloc(strlen(buffer));
 		strcpy(catQ[i].category, buffer);	
-		printf("catQ is %s\n", catQ[i].category);	
 		i++;
 	}
 
 
 	//make producer thread and struct with arguments to give to producer function
 	
-	pthread_t thread; 
+	pthread_t thread;
+
 	struct producerargs* pargs;
 	pargs = (struct producerargs*)malloc(sizeof(struct producerargs));
 	pargs->catQ = catQ;
@@ -175,9 +189,41 @@ int main(int argc, char** argv){
 	pargs->orderfile = orderfile;
 
 	int prodint = pthread_create(&thread, NULL, producer, (void*)(pargs));
+	
+	//make sure thread is zero
+	if(prodint){
+		fprintf(stderr, "Error: Int from pthread_create is: %d\n", prodint);
+		exit(-1);
+	}
+
+	
+	//create a consumer thread for each category
+	pthread_t consThreads[numlines];
+
+	struct consumerargs* cargs;
+
+	
+	int index, consint;
+	
+	cargs = (struct consumerargs*)malloc(sizeof(struct consumerargs)*numlines);
+
+	
+	for(index = 0; index < numlines; index++){ 
+		
+		cargs[index].q = &catQ[index]; 
+
+		cargs[index].DB = DB;
+
+		if(consint = pthread_create(&consThreads[index], NULL, consumer, (void*)(&(cargs[index])))){
+			fprintf(stderr, "Error: Int from pthread_create is: %d\n", consint);
+			exit(-1);
+		}
+
+
+	}
+
 
 	pthread_join(thread, NULL);
 
-
-//	return 0;
+	return 0;
 }
