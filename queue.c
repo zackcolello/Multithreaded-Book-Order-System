@@ -5,6 +5,9 @@
 
 void enqueue(struct queue* queue, struct ordernode* new){
 
+
+
+
 	//check if queue is empty
 	if(queue->rear == NULL){
 		queue->rear = new;
@@ -16,6 +19,7 @@ void enqueue(struct queue* queue, struct ordernode* new){
 		queue->rear = new;
 		queue->count++;
 	}
+
 }
 
 struct ordernode* dequeue(struct queue* queue){

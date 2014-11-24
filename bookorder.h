@@ -19,5 +19,7 @@ struct ordernode {
 	double price;
 	double currentBalance;
 	struct ordernode *next;	
+	char* category;
+	int id;
 
 };

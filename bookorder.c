@@ -29,26 +29,66 @@ void* producer(void* arguments){
 	//make void argument back into producerargs struct	
 	struct producerargs *args = (struct producerargs*)arguments;
 
-	char* word = malloc(1000);
-	strcpy(word, args->catQ[0].category);
-
-
 	//read file to create ordernodes for each line.
 	//Traverse database to find matching ID for that order, and attempt to place order,
 	//adding ordernode to either success or failure queue.
 	FILE* ofile = args->orderfile;
-	char* buffer = (char*)malloc(sizeof(1000));
+	char buffer[1000];
+
+	struct ordernode* new;
+	char* token = (char*)malloc(sizeof(1000));
+
+	struct queue *tempQ= (struct queue*)malloc(sizeof(struct queue)); 
 
 
 	while(fgets(buffer, 1000, ofile)){	
 
-		//here we'd have code to make ordernodes and stuff
+		
+		new = (struct ordernode*)malloc(sizeof(struct ordernode));
+		
+		//add title to order node
+		token = strtok(buffer, "\"");
+		new->title = (char*)malloc(strlen(token)+1);
+		strcpy(new->title, token);		
 
-		printf("%s\n", buffer);
+		//add price to order node
+		token = strtok(NULL, "|\"");
+		new->price = atof(token);
+
+		//add id to order node
+		token = strtok(NULL, "|\"");
+		new->id = atoi(token);
+
+		//add category to order node
+		token = strtok(NULL, "|\"\n");
+		new->category = (char*)malloc(strlen(token)+1);
+		strcpy(new->category, token);
+
+		//put orders in queue
+		
+		int i = 0;
+		while(i < args->Qsize){
 	
-		//token = strtok(buffer, "\"");
+			if(strcmp(args->catQ[i].category,new->category) == 0){
 
+				while(1){
+					if(args->catQ[i].count < 5){
 
+						enqueue(&(args->catQ[i]), new);
+						break;
+					}
+				}
+
+			}
+			i++;
+		}
+
+		//error, did not find category
+		if(i > args->Qsize){
+			fprintf(stderr, "Category %s does not exist.\n", new->category);
+		}
+
+	
 	}	
 }
 
@@ -56,6 +96,16 @@ void* producer(void* arguments){
 void* consumer(void* arguments){
 
 	struct consumerargs *args = (struct consumerargs*)arguments;
+
+	while(1){
+
+
+
+
+
+	}
+
+
 
 }
 
@@ -165,6 +215,8 @@ int main(int argc, char** argv){
 
 		catQ[i].category = (char*)malloc(strlen(buffer));
 		strcpy(catQ[i].category, buffer);	
+		catQ[i].rear = NULL;
+
 		i++;
 	}
 
@@ -177,7 +229,6 @@ int main(int argc, char** argv){
 	pargs = (struct producerargs*)malloc(sizeof(struct producerargs));
 	pargs->catQ = catQ;
 	pargs->Qsize = numlines;
-
 
 	FILE* orderfile = fopen(argv[2], "r");
 
