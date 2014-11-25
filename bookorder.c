@@ -5,6 +5,9 @@
 #include "queue.h"
 #include <pthread.h>
 
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER; 
+pthread_cond_t orders = PTHREAD_COND_INITIALIZER;
+pthread_cond_t space = PTHREAD_COND_INITIALIZER;
 
 struct producerargs{
 
@@ -24,7 +27,6 @@ struct consumerargs{
 //Producer thread has access to the orders file, and all queues. 
 //Producer creates ordernode, and adds to category queue.
 void* producer(void* arguments){
-
 
 	//make void argument back into producerargs struct	
 	struct producerargs *args = (struct producerargs*)arguments;
@@ -71,15 +73,20 @@ void* producer(void* arguments){
 	
 			if(strcmp(args->catQ[i].category,new->category) == 0){
 
-				while(1){
-					if(args->catQ[i].count < 5){
-
-						enqueue(&(args->catQ[i]), new);
-						break;
+				pthread_mutex_lock (&lock);
+				while(args->catQ[i].count >= 5){
+					pthread_cond_signal(&orders);
+					printf("producer is waiting\n");
+					pthread_cond_wait(&space, &lock);
 					}
-				}
 
+				enqueue(&(args->catQ[i]), new);
+				printf("added %s to %s\n",new->title,args->catQ[i].category);
+				pthread_cond_signal(&orders);
+				pthread_mutex_unlock(&lock);
 			}
+
+		
 			i++;
 		}
 
@@ -90,23 +97,50 @@ void* producer(void* arguments){
 
 	
 	}	
+
+	printf("End of order file.\n");
+
+	pthread_mutex_lock(&lock);
+
+	int k=0;
+	while(k<args->Qsize){
+		args->catQ[k].open=0;
+		k++;
+	
+	}
+	pthread_mutex_unlock(&lock);
+
+	printf("about to leave tho\n");
+
 }
 
 
 void* consumer(void* arguments){
 
+
 	struct consumerargs *args = (struct consumerargs*)arguments;
+	struct ordernode *order;
+	
 
-	while(1){
+	while(args->q->open==1){
 
+		pthread_mutex_lock(&lock);
 
+		printf("In %s: count is %d and open is %d\n", args->q->category, args->q->count, args->q->open);	
+		
+		while(args->q->count== 0 && args->q->open){
 
-
-
+			pthread_cond_signal(&space);
+			printf("consumer %s is waiting\n",args->q->category);
+			pthread_cond_wait(&orders,&lock);
+		}
+		
+		order = (struct ordernode *)dequeue((struct queue*)args->q);
+		
+		pthread_cond_signal(&space);
+		pthread_mutex_unlock(&lock);
+	
 	}
-
-
-
 }
 
 int main(int argc, char** argv){
@@ -216,6 +250,7 @@ int main(int argc, char** argv){
 		catQ[i].category = (char*)malloc(strlen(buffer));
 		strcpy(catQ[i].category, buffer);	
 		catQ[i].rear = NULL;
+		catQ[i].open=1;
 
 		i++;
 	}
@@ -274,7 +309,15 @@ int main(int argc, char** argv){
 	}
 
 
+	
+
 	pthread_join(thread, NULL);
+
+	printf("just joined with thread lol \n");
+
+	for(index = 0; index < numlines; index++){
+		pthread_join(consThreads[index], NULL);
+	}
 
 	return 0;
 }
