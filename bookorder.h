@@ -7,8 +7,8 @@ struct customerDatabase {
 	char* state;
 	char* zip;
 
-	struct ordernode *success;
-	struct ordernode *failure;
+	struct queue *success;
+	struct queue *failure;
 
 };
 

@@ -11,13 +11,14 @@ void displayqueue (struct queue* queue){
 	}
 
 	struct ordernode *temp = queue->rear->next;
-		printf("\t");
-	do{
+	
+	int i;
 
-		printf("%s ", temp->title);
-		
-	}while(temp != queue->rear->next);
-	printf("\n");
+	for(i = 0; i <queue->count; i++){
+		printf("\t%s\n", temp->title);
+		temp = temp->next;
+
+	}
 
 }
 

@@ -21,6 +21,7 @@ struct consumerargs{
 
 	struct customerDatabase* DB;		
 	struct queue* q;
+	int DBsize;
 
 };
 
@@ -134,7 +135,49 @@ void* consumer(void* arguments){
 		}
 		
 		order = (struct ordernode *)dequeue((struct queue*)args->q);
-		
+
+		if(order!= NULL){
+
+		//WRITE CODE HERE FOR DB STUFF
+	
+			//find matching customer id in database
+			int i;
+			for(i=0; i < args->DBsize; i++){ 
+
+				//found matching id
+				if(args->DB[i].id == order->id){
+
+
+					//success!
+					if(args->DB[i].balance >=  order->price){
+	
+	
+						order->currentBalance = args->DB[i].balance - order->price;
+						args->DB[i].balance = order->currentBalance;
+						printf("The order price is %.2f, and the balance is %.2f for this guy: %s\n\t%s\n", order->price, args->DB[i].balance, args->DB[i].name, order->title);
+						enqueue(args->DB[i].success, order);		
+
+						printf("we have enqueued\n");
+
+
+
+					//not enough money
+					}else{
+						enqueue(args->DB[i].failure, order);
+						displayqueue(args->DB[i].failure);
+
+					}
+
+				}
+			}
+			
+
+
+
+
+		//printf("%s\n\t%s\n", order->category, order->title);	
+		}
+	
 		pthread_cond_signal(&space);
 		pthread_mutex_unlock(&lock);
 
@@ -155,10 +198,10 @@ int main(int argc, char** argv){
 	//get number of lines in the database file for the hash table
 	
 	int c;
-	int numlines;
+	int DBnumlines;
 	while((c = fgetc(databasefile)) != EOF){
 		if(c == '\n'){
-			numlines++;	
+			DBnumlines++;	
 		}
 	}
 
@@ -166,7 +209,7 @@ int main(int argc, char** argv){
 
 	fseek(databasefile, 0, SEEK_SET);
 	
-	struct customerDatabase* DB = (struct customerDatabase*)malloc(sizeof(struct customerDatabase)*numlines);
+	struct customerDatabase* DB = (struct customerDatabase*)malloc(sizeof(struct customerDatabase)*DBnumlines);
 	char* token;
 	char buffer[1000];
 	int i = 0;
@@ -208,8 +251,11 @@ int main(int argc, char** argv){
 		(DB[i]).zip = (char*)malloc(strlen(token));				
 		strcpy(DB[i].zip, token);
 	
-		DB[i].success = NULL;
-		DB[i].failure = NULL;
+		DB[i].success = (struct queue*)malloc(sizeof(struct queue));
+		DB[i].failure = (struct queue*)malloc(sizeof(struct queue));
+		DB[i].success->rear = NULL;
+		DB[i].failure->rear = NULL;
+
 
 		i++;
 	}	 	
@@ -228,7 +274,7 @@ int main(int argc, char** argv){
 	//get number of lines in category file
 
 	i = 0;	
-	numlines = 0;
+	int numlines = 0;
 
 	while((c = fgetc(categoryfile)) != EOF){
 		if(c == '\n'){
@@ -296,8 +342,8 @@ int main(int argc, char** argv){
 	for(index = 0; index < numlines; index++){ 
 		
 		cargs[index].q = &catQ[index]; 
-
 		cargs[index].DB = DB;
+		cargs[index].DBsize = DBnumlines;
 
 		if(consint = pthread_create(&consThreads[index], NULL, consumer, (void*)(&(cargs[index])))){
 			fprintf(stderr, "Error: Int from pthread_create is: %d\n", consint);
@@ -307,15 +353,25 @@ int main(int argc, char** argv){
 
 	}
 
-
-	
-
 	pthread_join(thread, NULL);
 
 
 	for(index = 0; index < numlines; index++){
 		pthread_join(consThreads[index], NULL);
 	}
+
+	int x;
+	for(x = 0; x<DBnumlines; x++){
+		printf("%s bought books:\n", DB[x].name);
+
+		displayqueue(DB[x].success);
+
+		printf("%s could not afford:\n", DB[x].name);
+
+		displayqueue(DB[x].failure);
+
+	}
+
 
 	return 0;
 }
