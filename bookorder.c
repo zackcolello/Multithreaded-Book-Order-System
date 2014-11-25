@@ -76,12 +76,10 @@ void* producer(void* arguments){
 				pthread_mutex_lock (&lock);
 				while(args->catQ[i].count >= 5){
 					pthread_cond_signal(&orders);
-					printf("producer is waiting\n");
 					pthread_cond_wait(&space, &lock);
 					}
 
 				enqueue(&(args->catQ[i]), new);
-				printf("added %s to %s\n",new->title,args->catQ[i].category);
 				pthread_cond_signal(&orders);
 				pthread_mutex_unlock(&lock);
 			}
@@ -98,19 +96,18 @@ void* producer(void* arguments){
 	
 	}	
 
-	printf("End of order file.\n");
 
 	pthread_mutex_lock(&lock);
 
 	int k=0;
 	while(k<args->Qsize){
+		
 		args->catQ[k].open=0;
 		k++;
-	
 	}
+	pthread_cond_broadcast(&orders);
 	pthread_mutex_unlock(&lock);
 
-	printf("about to leave tho\n");
 
 }
 
@@ -122,23 +119,25 @@ void* consumer(void* arguments){
 	struct ordernode *order;
 	
 
-	while(args->q->open==1){
+	while(args->q->open==1|| args->q->count>0){
 
 		pthread_mutex_lock(&lock);
 
-		printf("In %s: count is %d and open is %d\n", args->q->category, args->q->count, args->q->open);	
 		
-		while(args->q->count== 0 && args->q->open){
+		while(args->q->count== 0 && args->q->open==1){
 
 			pthread_cond_signal(&space);
-			printf("consumer %s is waiting\n",args->q->category);
 			pthread_cond_wait(&orders,&lock);
+			if(args->q->open==0){
+				break;
+			}
 		}
 		
 		order = (struct ordernode *)dequeue((struct queue*)args->q);
 		
 		pthread_cond_signal(&space);
 		pthread_mutex_unlock(&lock);
+
 	
 	}
 }
@@ -313,7 +312,6 @@ int main(int argc, char** argv){
 
 	pthread_join(thread, NULL);
 
-	printf("just joined with thread lol \n");
 
 	for(index = 0; index < numlines; index++){
 		pthread_join(consThreads[index], NULL);
