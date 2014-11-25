@@ -39,9 +39,8 @@ void* producer(void* arguments){
 	char buffer[1000];
 
 	struct ordernode* new;
-	char* token = (char*)malloc(sizeof(1000));
+	char* token;
 
-	struct queue *tempQ= (struct queue*)malloc(sizeof(struct queue)); 
 
 
 	while(fgets(buffer, 1000, ofile)){	
@@ -77,9 +76,12 @@ void* producer(void* arguments){
 				pthread_mutex_lock (&lock);
 				while(args->catQ[i].count >= 5){
 					pthread_cond_signal(&orders);
+					printf("PRODUCER waits for space in %s\n",args->catQ[i].category);
 					pthread_cond_wait(&space, &lock);
-					}
 
+					}
+				
+				printf("PRODUCER adds %s to %s\n", new->title,args->catQ[i].category);
 				enqueue(&(args->catQ[i]), new);
 				pthread_cond_signal(&orders);
 				pthread_mutex_unlock(&lock);
@@ -96,10 +98,9 @@ void* producer(void* arguments){
 
 	
 	}	
-
-
+	fclose(ofile);
 	pthread_mutex_lock(&lock);
-
+	printf("PRODUCER CLOSES QUEUES\n");
 	int k=0;
 	while(k<args->Qsize){
 		
@@ -108,8 +109,6 @@ void* producer(void* arguments){
 	}
 	pthread_cond_broadcast(&orders);
 	pthread_mutex_unlock(&lock);
-
-
 }
 
 
@@ -128,8 +127,12 @@ void* consumer(void* arguments){
 		while(args->q->count== 0 && args->q->open==1){
 
 			pthread_cond_signal(&space);
+			printf("CONSUMER waits for order in %s\n",args->q->category);
 			pthread_cond_wait(&orders,&lock);
+		
+			printf("CONSUMER resumes at %s\n", args->q->category);
 			if(args->q->open==0){
+				printf("CONSUMER QUEUE %s has closed\n",args->q->category);
 				break;
 			}
 		}
@@ -154,17 +157,12 @@ void* consumer(void* arguments){
 	
 						order->currentBalance = args->DB[i].balance - order->price;
 						args->DB[i].balance = order->currentBalance;
-						printf("The order price is %.2f, and the balance is %.2f for this guy: %s\n\t%s\n", order->price, args->DB[i].balance, args->DB[i].name, order->title);
 						enqueue(args->DB[i].success, order);		
-
-						printf("we have enqueued\n");
-
 
 
 					//not enough money
 					}else{
 						enqueue(args->DB[i].failure, order);
-						displayqueue(args->DB[i].failure);
 
 					}
 
@@ -198,13 +196,13 @@ int main(int argc, char** argv){
 	//get number of lines in the database file for the hash table
 	
 	int c;
-	int DBnumlines;
+	int DBnumlines=0;
 	while((c = fgetc(databasefile)) != EOF){
-		if(c == '\n'){
-			DBnumlines++;	
+		if(c == '\n'|| c==EOF){
+		
+			DBnumlines++;
 		}
 	}
-
 	//create array of structs called customerDatabase
 
 	fseek(databasefile, 0, SEEK_SET);
@@ -299,7 +297,7 @@ int main(int argc, char** argv){
 
 		i++;
 	}
-
+	fclose(categoryfile);
 
 	//make producer thread and struct with arguments to give to producer function
 	
@@ -359,19 +357,61 @@ int main(int argc, char** argv){
 	for(index = 0; index < numlines; index++){
 		pthread_join(consThreads[index], NULL);
 	}
-
+	
+	FILE *reportfile;
+	reportfile=fopen("finalreport.txt","w+");
+	struct ordernode *reprint;	
 	int x;
 	for(x = 0; x<DBnumlines; x++){
-		printf("%s bought books:\n", DB[x].name);
+	//	printf("=== BEGIN CUSTOMER INFO===\n");
+		fprintf(reportfile,"=== BEGIN CUSTOMER INFO===\n###BALENCE###\nCustumer name: %s\nCustumer ID number: %d\nRemaining credit balance after all purchases (dollar amount): %.02f\n###SUCCESSFUL ORDERS###\n", DB[x].name, DB[x].id, DB[x].balance);
+		
+		int y;
 
-		displayqueue(DB[x].success);
+		if(DB[x].success->rear){
+			reprint = DB[x].success->rear->next;
+				for(y=0;y<DB[x].success->count;y++){
+					fprintf(reportfile,"\"%s\"|%.02f|%.02f\n",reprint->title,reprint->price,reprint->currentBalance);
+			
+					reprint=reprint->next;
+				}
+			}
 
-		printf("%s could not afford:\n", DB[x].name);
 
-		displayqueue(DB[x].failure);
+		fprintf(reportfile,"###REJECTED ORDERS###\n");
+
+		if(DB[x].failure->rear){
+			reprint = DB[x].failure->rear->next;
+			for(y=0;y<DB[x].failure->count;y++){
+				fprintf(reportfile,"\"%s\"|%.02f\n",reprint->title,reprint->price);
+				reprint=reprint->next;
+			}
+		}
+		fprintf(reportfile,"===END CUSTOMER INFO===\n\n");
+
+		destroyQ(DB[x].success);
+		destroyQ(DB[x].failure);
+		free(DB[x].name);
+		free(DB[x].address);
+		free(DB[x].state);
+		free(DB[x].zip);
+		free(DB[x].success);
+		free(DB[x].failure);
+	//	printf("%s could not afford:\n", DB[x].name);
+
+	//	displayqueue(DB[x].failure);
 
 	}
-
+	free(DB);
+	int l;
+	for(l=0;l<numlines;l++){
+		free(catQ[l].category);;
+	}
+	free(cargs);
+	free(pargs);
+	free(catQ);
+	fclose(reportfile);
+	
 
 	return 0;
 }

@@ -71,4 +71,25 @@ struct ordernode* dequeue(struct queue* queue){
 	
 }
 
+void destroyQ(struct queue* queue){
+	if(queue->rear==NULL){
+		return;
+	}
+	int i;
+	struct ordernode *target, *temp;
+	target=queue->rear->next;
+	temp=target->next;
+	queue->rear->next = NULL;
+	for(i=0; i<queue->count; i++){
+		free(target->category);
+		free(target->title);
+		free(target);
+	
+		target = temp;
+		if(target==NULL){
+			break;
+		}
+		temp=temp->next;
 
+	}
+}
