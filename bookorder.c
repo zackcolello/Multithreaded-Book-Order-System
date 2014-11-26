@@ -169,6 +169,11 @@ void* consumer(void* arguments){
 
 int main(int argc, char** argv){
 
+	if(argc != 4){
+		fprintf(stderr, "Invalid number of arguments.\n");
+		return -1;
+	}
+
 	FILE *databasefile;
 	databasefile = fopen(argv[1], "r"); //read in user database
 	
