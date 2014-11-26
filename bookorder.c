@@ -125,8 +125,6 @@ void* consumer(void* arguments){
 
 		if(order!= NULL){
 
-		//WRITE CODE HERE FOR DB STUFF
-	
 			//find matching customer id in database
 			int i;
 			for(i=0; i < args->DBsize; i++){ 
