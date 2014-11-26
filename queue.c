@@ -1,7 +1,7 @@
+#include <stdio.h>
+#include <stdlib.h>
 #include "bookorder.h"
 #include "queue.h"
-#include <stdlib.h>
-#include <stdio.h>
 
 void displayqueue (struct queue* queue){
 

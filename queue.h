@@ -6,5 +6,7 @@ struct queue{
 	int open;
 };
 
+void displayqueue (struct queue* queue);
 struct ordernode* dequeue(struct queue* queue);
 void enqueue(struct queue* queue, struct ordernode* newnode);
+void destroyQ(struct queue* queue);

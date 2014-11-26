@@ -12,7 +12,6 @@ struct customerDatabase {
 
 };
 
-
 struct ordernode {
 
 	char* title;
@@ -23,3 +22,21 @@ struct ordernode {
 	int id;
 
 };
+
+struct producerargs{
+
+	FILE* orderfile;
+	struct queue* catQ;
+	int Qsize; //holds how many queues are in catQ
+};
+
+struct consumerargs{
+
+	struct customerDatabase* DB;
+	struct queue* q;
+	int DBsize;
+};
+
+void* producer(void* arguments);
+void* consumer(void* arguments);
+

@@ -9,22 +9,6 @@ pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t orders = PTHREAD_COND_INITIALIZER;
 pthread_cond_t space = PTHREAD_COND_INITIALIZER;
 
-struct producerargs{
-
-	FILE* orderfile;
-	struct queue* catQ;
-	int Qsize; //holds how many queues are in catQ
-
-};
-
-struct consumerargs{
-
-	struct customerDatabase* DB;		
-	struct queue* q;
-	int DBsize;
-
-};
-
 //Producer thread has access to the orders file, and all queues. 
 //Producer creates ordernode, and adds to category queue.
 void* producer(void* arguments){
@@ -358,36 +342,37 @@ int main(int argc, char** argv){
 		pthread_join(consThreads[index], NULL);
 	}
 	
-	FILE *reportfile;
-	reportfile=fopen("finalreport.txt","w+");
 	struct ordernode *reprint;	
 	int x;
+
+	printf("\n\nORDER REPORT:\n");
+
+
 	for(x = 0; x<DBnumlines; x++){
-	//	printf("=== BEGIN CUSTOMER INFO===\n");
-		fprintf(reportfile,"=== BEGIN CUSTOMER INFO===\n###BALENCE###\nCustumer name: %s\nCustumer ID number: %d\nRemaining credit balance after all purchases (dollar amount): %.02f\n###SUCCESSFUL ORDERS###\n", DB[x].name, DB[x].id, DB[x].balance);
+		printf("=== BEGIN CUSTOMER INFO ===\n### BALANCE ###\nCustumer name: %s\nCustumer ID number: %d\nRemaining credit balance after all purchases (dollar amount): %.02f\n### SUCCESSFUL ORDERS ###\n", DB[x].name, DB[x].id, DB[x].balance);
 		
 		int y;
 
 		if(DB[x].success->rear){
 			reprint = DB[x].success->rear->next;
 				for(y=0;y<DB[x].success->count;y++){
-					fprintf(reportfile,"\"%s\"|%.02f|%.02f\n",reprint->title,reprint->price,reprint->currentBalance);
+					printf("\"%s\"|%.02f|%.02f\n",reprint->title,reprint->price,reprint->currentBalance);
 			
 					reprint=reprint->next;
 				}
 			}
 
 
-		fprintf(reportfile,"###REJECTED ORDERS###\n");
+		printf("### REJECTED ORDERS ###\n");
 
 		if(DB[x].failure->rear){
 			reprint = DB[x].failure->rear->next;
 			for(y=0;y<DB[x].failure->count;y++){
-				fprintf(reportfile,"\"%s\"|%.02f\n",reprint->title,reprint->price);
+				printf("\"%s\"|%.02f\n",reprint->title,reprint->price);
 				reprint=reprint->next;
 			}
 		}
-		fprintf(reportfile,"===END CUSTOMER INFO===\n\n");
+		printf("=== END CUSTOMER INFO ===\n\n");
 
 		destroyQ(DB[x].success);
 		destroyQ(DB[x].failure);
@@ -397,10 +382,6 @@ int main(int argc, char** argv){
 		free(DB[x].zip);
 		free(DB[x].success);
 		free(DB[x].failure);
-	//	printf("%s could not afford:\n", DB[x].name);
-
-	//	displayqueue(DB[x].failure);
-
 	}
 	free(DB);
 	int l;
@@ -410,7 +391,6 @@ int main(int argc, char** argv){
 	free(cargs);
 	free(pargs);
 	free(catQ);
-	fclose(reportfile);
 	
 
 	return 0;
